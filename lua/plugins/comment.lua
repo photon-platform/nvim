@@ -17,6 +17,7 @@ return {
   -- Context commentstring dependency setup
   {
     'JoosepAlviste/nvim-ts-context-commentstring',
-     opts = { enable_autocmd = false }, -- Trigger via hook
+    event = "VeryLazy", -- Ensure this loads when Comment.nvim does
+    opts = { enable_autocmd = false }, -- Trigger via hook
   }
 }
