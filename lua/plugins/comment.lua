@@ -3,7 +3,10 @@ return {
   {
     'numToStr/Comment.nvim',
     event = "VeryLazy", -- Or load on keymap
-    dependencies = { 'JoosepAlviste/nvim-ts-context-commentstring' }, --
+    dependencies = {
+      -- Mark as required to ensure it loads before Comment.nvim's config runs
+      { 'JoosepAlviste/nvim-ts-context-commentstring', required = true },
+    },
     opts = {
       padding = true, -- Add space after delimiter
       sticky = true, -- Keep cursor position
@@ -14,10 +17,6 @@ return {
       pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
     },
   },
-  -- Context commentstring dependency setup
-  {
-    'JoosepAlviste/nvim-ts-context-commentstring',
-    event = "VeryLazy", -- Ensure this loads when Comment.nvim does
-    opts = { enable_autocmd = false }, -- Trigger via hook
-  }
+  -- The nvim-ts-context-commentstring dependency is now handled within the Comment.nvim spec
+  -- Remove the separate entry here.
 }
