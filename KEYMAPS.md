@@ -93,7 +93,7 @@ This document lists the custom keymaps configured in `lua/core/keymaps.lua`.
 
 *   `n` `<F5>`: Continue
 *   `n` `<F10>`: Step Over
-*   `n` `<F11>`: Step Into
+*   `n` `<leader>di`: Step Into
 *   `n` `<F12>`: Step Out
 *   `n` `<leader>b`: Toggle Breakpoint
 *   `n` `<leader>B`: Set Conditional Breakpoint
