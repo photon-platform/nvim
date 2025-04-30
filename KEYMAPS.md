@@ -88,3 +88,19 @@ This document lists the custom keymaps configured in `lua/core/keymaps.lua`.
 *   `i` `if`: Inside function
 *   `a` `ac`: Around class
 *   `i` `ic`: Inside class
+
+## Debugging (DAP) Mappings (Defined in lua/plugins/dap.lua)
+
+*   `n` `<F5>`: Continue
+*   `n` `<F10>`: Step Over
+*   `n` `<F11>`: Step Into
+*   `n` `<F12>`: Step Out
+*   `n` `<leader>b`: Toggle Breakpoint
+*   `n` `<leader>B`: Set Conditional Breakpoint
+*   `n` `<leader>lp`: Set Logpoint
+*   `n` `<leader>dr`: Open REPL
+*   `n` `<leader>dl`: Run Last Debug Session
+*   `n` `<leader>du`: Toggle DAP UI
+*   `n` `<leader>do`: Open DAP UI
+*   `n` `<leader>dc`: Close DAP UI
+*   `n` `<leader>dp`: Debug Python File (Default Config)
