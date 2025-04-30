@@ -35,7 +35,7 @@ return {
              python_path = "python"
           end
 
-          print("nvim-dap-python: Attempting setup with path: ".. python_path)
+          -- print("nvim-dap-python: Attempting setup with path: ".. python_path)
           -- Setup debugpy adapter using the resolved path
           local dap_python_status, dap_python = pcall(require, "dap-python")
           if dap_python_status then
@@ -43,7 +43,7 @@ return {
             if not setup_status then
                print("nvim-dap-python: Error calling dap_python.setup(): ".. tostring(setup_result))
             else
-               print("nvim-dap-python: Setup called successfully with path: ".. python_path)
+               -- print("nvim-dap-python: Setup called successfully with path: ".. python_path)
                -- Optionally configure test runner here if needed
                -- dap_python.test_runner = 'pytest'
             end
@@ -94,7 +94,7 @@ return {
               max_type_length = nil,
             }
           })
-          print("nvim-dap-ui configured.")
+          -- print("nvim-dap-ui configured.")
         end,
       },
     },
@@ -121,10 +121,10 @@ return {
             local dap = require('dap')
             -- Check if python configurations have been registered by dap-python.setup()
             if dap.configurations.python and #dap.configurations.python > 0 then
-               -- Use dap.continue() which will pick the first appropriate 'launch' config
-               -- or use dap.run() specifying the 'name' if needed.
+               -- Use dap.continue() which will pick the first appropriate launch config
+               -- or use dap.run() specifying the name if needed.
                -- The default config name registered by dap-python.setup is typically sufficient.
-               print("nvim-dap: Launching Python debug session...")
+               -- print("nvim-dap: Launching Python debug session...")
                dap.continue() -- dap.continue() implicitly uses registered configurations.
                -- Alternatively, explicitly run the default config registered by setup:
                -- dap.run({ type = 'python', request = 'launch', name = 'Launch file', program = '${file}' })
@@ -156,7 +156,7 @@ return {
 
       -- Setup DAP UI listeners only if dapui is available
       if dapui_status then
-          print("nvim-dap: Setting up DAP UI listeners.")
+          -- print("nvim-dap: Setting up DAP UI listeners.")
           dap.listeners.after.event_initialized["dapui_config"] = function() dapui.open() end
           dap.listeners.before.event_terminated["dapui_config"] = function() dapui.close() end
           dap.listeners.before.event_exited["dapui_config"] = function() dapui.close() end
@@ -164,7 +164,7 @@ return {
           print("nvim-dap: 'dapui' not available, skipping UI listener setup.")
       end
 
-      print("nvim-dap core configured.")
+      -- print("nvim-dap core configured.")
     end,
   },
 }
