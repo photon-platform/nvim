@@ -10,7 +10,7 @@ return {
         ft = "python", -- Load only for python files
         config = function()
           -- Setup debugpy adapter using the user's Python environment
-          -- Assumes 'python3' is available in PATH and points to the desired environment
+          -- Assumes python3 is available in PATH and points to the desired environment
           -- You might need to adjust this path if you use virtual environments or pyenv
           local python_path = vim.fn.executable("python3") or vim.fn.executable("python") or "python"
           require("dap-python").setup(python_path)
