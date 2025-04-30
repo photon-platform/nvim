@@ -11,6 +11,8 @@ echo node
 node -v
 echo
 
+pip install debugpy
+
 cd ~/Downloads
 
 curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
