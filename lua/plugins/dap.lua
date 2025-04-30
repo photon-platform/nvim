@@ -13,9 +13,25 @@ return {
           -- Assumes python3 is available in PATH and points to the desired environment
           -- You might need to adjust this path if you use virtual environments or pyenv
           local python_path = vim.fn.executable("python3") or vim.fn.executable("python") or "python"
-          require("dap-python").setup(python_path)
-          -- Basic launch configurations are often added by setup() or defined elsewhere
-          -- Remove the explicit extend_configs() call
+          -- Ensure dap-python is actually required and setup *before* defining the keymap
+          local dap_python = require("dap-python")
+          dap_python.setup(python_path)
+
+          -- Define the Python-specific launch keymap HERE
+          vim.keymap.set('n', '<leader>dp', function()
+            require('dap').run({
+              type = 'python',
+              request = 'launch',
+              name = "Launch file",
+              program = "${file}", -- Debug the current file
+              pythonPath = function()
+                -- Now dap_python is guaranteed to be loaded
+                return dap_python.get_executable_path()
+              end,
+            })
+          end, { desc = "DAP: Debug Python File" })
+
+          print("nvim-dap-python configured with path: " .. (python_path or "nil")) -- Add for debugging
         end,
       },
 
@@ -82,20 +98,7 @@ return {
       { "<leader>dl", function() require("dap").run_last() end, desc = "DAP: Run Last" },
       { "<leader>du", function() require("dapui").toggle() end, desc = "DAP: Toggle UI" },
       { "<leader>do", function() require("dapui").open() end, desc = "DAP: Open UI" },
-     { "<leader>dc", function() require("dapui").close() end, desc = "DAP: Close UI" },
-     -- Launch the debugger for the current Python file
-     { "<leader>dp", function()
-         require('dap').run({
-           type = 'python',
-           request = 'launch',
-           name = "Launch file",
-           program = "${file}", -- Debug the current file
-           pythonPath = function()
-             -- Allow dap-python to determine the python path dynamically
-             return require('dap-python').get_executable_path()
-           end,
-         })
-       end, desc = "DAP: Debug Python File" },
+      { "<leader>dc", function() require("dapui").close() end, desc = "DAP: Close UI" },
    },
    config = function()
       -- Basic DAP setup (can be empty if most config is in dependencies)
