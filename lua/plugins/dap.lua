@@ -1,37 +1,55 @@
-
+-- lua/plugins/dap.lua (Revised Configuration)
 return {
   -- Core DAP plugin
   {
     "mfussenegger/nvim-dap",
+    event = "VeryLazy", -- Load DAP fairly early, but not immediately
     dependencies = {
-      -- Installs the debugpy adapter
+      -- Python DAP extension
       {
         "mfussenegger/nvim-dap-python",
         ft = "python", -- Load only for python files
         config = function()
-          -- Setup debugpy adapter using the user's Python environment
-          -- Assumes python3 is available in PATH and points to the desired environment
-          -- You might need to adjust this path if you use virtual environments or pyenv
-          local python_path = vim.fn.executable("python3") or vim.fn.executable("python") or "python"
-          -- Ensure dap-python is actually required and setup *before* defining the keymap
-          local dap_python = require("dap-python")
-          dap_python.setup(python_path)
+          -- Explicitly find the pyenv python path
+          local python_path = nil
+          local handle = io.popen("pyenv which python")
+          if handle then
+            local result = handle:read("*a")
+            handle:close()
+            python_path = vim.fn.trim(result)
+            -- Basic check if the path seems valid (not empty and not containing error messages)
+            if python_path == "" or python_path:find("pyenv: python: command not found") or not vim.fn.executable(python_path) then
+               print("nvim-dap-python: 'pyenv which python' failed or returned invalid path. Falling back.")
+               python_path = nil
+            end
+          end
 
-          -- Define the Python-specific launch keymap HERE
-          vim.keymap.set('n', '<leader>dp', function()
-            require('dap').run({
-              type = 'python',
-              request = 'launch',
-              name = "Launch file",
-              program = "${file}", -- Debug the current file
-              pythonPath = function()
-                -- Now dap_python is guaranteed to be loaded
-                return dap_python.get_executable_path()
-              end,
-            })
-          end, { desc = "DAP: Debug Python File" })
+          -- Fallback if pyenv command failed or pyenv not in use
+          if not python_path then
+             python_path = vim.fn.executable("python3") or vim.fn.executable("python")
+          end
 
-          print("nvim-dap-python configured with path: " .. (python_path or "nil")) -- Add for debugging
+          -- Final fallback
+          if not python_path or python_path == "" then
+             print("nvim-dap-python: Could not resolve Python path. Using default 'python'.")
+             python_path = "python"
+          end
+
+          print("nvim-dap-python: Attempting setup with path: ".. python_path)
+          -- Setup debugpy adapter using the resolved path
+          local dap_python_status, dap_python = pcall(require, "dap-python")
+          if dap_python_status then
+            local setup_status, setup_result = pcall(dap_python.setup, python_path)
+            if not setup_status then
+               print("nvim-dap-python: Error calling dap_python.setup(): ".. tostring(setup_result))
+            else
+               print("nvim-dap-python: Setup called successfully with path: ".. python_path)
+               -- Optionally configure test runner here if needed
+               -- dap_python.test_runner = 'pytest'
+            end
+          else
+             print("nvim-dap-python: Failed to require 'dap-python'.")
+          end
         end,
       },
 
@@ -64,8 +82,8 @@ return {
               },
             },
             floating = {
-              max_height = nil, -- Use default
-              max_width = nil, -- Use default
+              max_height = nil,
+              max_width = nil,
               border = "rounded",
               mappings = {
                 close = { "q", "<Esc>" },
@@ -73,19 +91,14 @@ return {
             },
             controls = { enabled = true, element = "repl" },
             render = {
-              max_type_length = nil, -- Show full type names
+              max_type_length = nil,
             }
           })
-
-          local dap = require("dap")
-          -- Automatically open/close UI on DAP events
-          dap.listeners.after.event_initialized["dapui_config"] = function() dapui.open() end
-          dap.listeners.before.event_terminated["dapui_config"] = function() dapui.close() end
-          dap.listeners.before.event_exited["dapui_config"] = function() dapui.close() end
+          print("nvim-dap-ui configured.")
         end,
       },
     },
-    -- Define keymaps for DAP within the plugin spec for lazy loading
+    -- Define ALL DAP keymaps here to ensure they are loaded with nvim-dap core
     keys = {
       { "<F5>", function() require("dap").continue() end, desc = "DAP: Continue" },
       { "<F10>", function() require("dap").step_over() end, desc = "DAP: Step Over" },
@@ -99,12 +112,59 @@ return {
       { "<leader>du", function() require("dapui").toggle() end, desc = "DAP: Toggle UI" },
       { "<leader>do", function() require("dapui").open() end, desc = "DAP: Open UI" },
       { "<leader>dc", function() require("dapui").close() end, desc = "DAP: Close UI" },
-   },
-   config = function()
-      -- Basic DAP setup (can be empty if most config is in dependencies)
-      -- You could add sign definitions here if you don't like the defaults
+      -- Revised Python launch keymap
+      {
+        "<leader>dp",
+        function()
+          -- Check if the current buffer is a Python file
+          if vim.bo.filetype == 'python' then
+            local dap = require('dap')
+            -- Check if python configurations have been registered by dap-python.setup()
+            if dap.configurations.python and #dap.configurations.python > 0 then
+               -- Use dap.continue() which will pick the first appropriate 'launch' config
+               -- or use dap.run() specifying the 'name' if needed.
+               -- The default config name registered by dap-python.setup is typically sufficient.
+               print("nvim-dap: Launching Python debug session...")
+               dap.continue() -- dap.continue() implicitly uses registered configurations.
+               -- Alternatively, explicitly run the default config registered by setup:
+               -- dap.run({ type = 'python', request = 'launch', name = 'Launch file', program = '${file}' })
+            else
+              print("nvim-dap: No Python debug configurations found. 'nvim-dap-python' setup might have failed or not run yet.")
+              vim.notify("nvim-dap: No Python debug configurations found.", vim.log.levels.WARN)
+            end
+          else
+            print("nvim-dap: Not a Python file.")
+            vim.notify("nvim-dap: Not a Python file.", vim.log.levels.INFO)
+          end
+        end,
+        desc = "DAP: Debug Python File",
+        -- No ft='python' here; let the function check filetype at runtime
+      },
+    },
+    config = function()
+      local dap_status, dap = pcall(require, "dap")
+      local dapui_status, dapui = pcall(require, "dapui")
+
+      if not dap_status then
+          print("nvim-dap: Failed to require 'dap' in core config.")
+          return
+      end
+
+      -- Basic DAP setup (signs, etc.) - Optional
       -- vim.fn.sign_define('DapBreakpoint', {text='🛑', texthl='', linehl='', numhl=''})
       -- vim.fn.sign_define('DapStopped', {text='▶️', texthl='', linehl='DiagnosticUnderline', numhl=''})
+
+      -- Setup DAP UI listeners only if dapui is available
+      if dapui_status then
+          print("nvim-dap: Setting up DAP UI listeners.")
+          dap.listeners.after.event_initialized["dapui_config"] = function() dapui.open() end
+          dap.listeners.before.event_terminated["dapui_config"] = function() dapui.close() end
+          dap.listeners.before.event_exited["dapui_config"] = function() dapui.close() end
+      else
+          print("nvim-dap: 'dapui' not available, skipping UI listener setup.")
+      end
+
+      print("nvim-dap core configured.")
     end,
   },
 }
