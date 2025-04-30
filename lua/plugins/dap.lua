@@ -14,9 +14,8 @@ return {
           -- You might need to adjust this path if you use virtual environments or pyenv
           local python_path = vim.fn.executable("python3") or vim.fn.executable("python") or "python"
           require("dap-python").setup(python_path)
-
-          -- Add basic launch configurations
-          require("dap-python").extend_configs()
+          -- Basic launch configurations are often added by setup() or defined elsewhere
+          -- Remove the explicit extend_configs() call
         end,
       },
 
@@ -83,12 +82,22 @@ return {
       { "<leader>dl", function() require("dap").run_last() end, desc = "DAP: Run Last" },
       { "<leader>du", function() require("dapui").toggle() end, desc = "DAP: Toggle UI" },
       { "<leader>do", function() require("dapui").open() end, desc = "DAP: Open UI" },
-      { "<leader>dc", function() require("dapui").close() end, desc = "DAP: Close UI" },
-      -- Add keymap for launching Python debugger (using dap-python's default config)
-      { "<leader>dp", function() require("dap-python").test_method() end, desc = "DAP: Debug Python File" },
-      -- You might want different keys or more specific launch configs later
-    },
-    config = function()
+     { "<leader>dc", function() require("dapui").close() end, desc = "DAP: Close UI" },
+     -- Launch the debugger for the current Python file
+     { "<leader>dp", function()
+         require('dap').run({
+           type = 'python',
+           request = 'launch',
+           name = "Launch file",
+           program = "${file}", -- Debug the current file
+           pythonPath = function()
+             -- Allow dap-python to determine the python path dynamically
+             return require('dap-python').get_executable_path()
+           end,
+         })
+       end, desc = "DAP: Debug Python File" },
+   },
+   config = function()
       -- Basic DAP setup (can be empty if most config is in dependencies)
       -- You could add sign definitions here if you don't like the defaults
       -- vim.fn.sign_define('DapBreakpoint', {text='🛑', texthl='', linehl='', numhl=''})

@@ -103,4 +103,4 @@ This document lists the custom keymaps configured in `lua/core/keymaps.lua`.
 *   `n` `<leader>du`: Toggle DAP UI
 *   `n` `<leader>do`: Open DAP UI
 *   `n` `<leader>dc`: Close DAP UI
-*   `n` `<leader>dp`: Debug Python File (Default Config)
+*   `n` `<leader>dp`: Debug Python File
