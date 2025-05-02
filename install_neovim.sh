@@ -11,6 +11,11 @@ echo node
 node -v
 echo
 
+# required for ltex in lsp
+echo java
+sudo apt install -y openjdk-17-jdk
+java --version
+
 pip install debugpy
 
 cd ~/Downloads
