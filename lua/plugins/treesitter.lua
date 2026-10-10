@@ -2,7 +2,7 @@
 return {
   {
     'nvim-treesitter/nvim-treesitter',
-    version = false, -- Use recommended version or latest commit
+    branch = 'master', -- Stable branch compatible with Neovim 0.11 and nvim-treesitter.configs
     build = ':TSUpdate', -- Auto-run :TSUpdate on install/update
     event = { "BufReadPre", "BufNewFile" }, -- Load early for highlighting
     dependencies = {

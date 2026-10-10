@@ -48,7 +48,13 @@ vim.cmd("syntax on") --
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
--- More options...
+-- Python 3 provider (configured via uv)
+local uv_pynvim = vim.fn.expand("~/.local/share/uv/tools/pynvim/bin/python")
+if vim.fn.filereadable(uv_pynvim) == 1 then
+  vim.g.python3_host_prog = uv_pynvim
+elseif vim.fn.executable("python3") == 1 then
+  vim.g.python3_host_prog = vim.fn.exepath("python3")
+end
 
 -- Load plugin manager (lazy.nvim) and keymaps next
 -- require('core.lazy_setup') -- Assuming lazy setup is in lua/core/lazy_setup.lua
@@ -127,74 +133,94 @@ return {
       'hrsh7th/cmp-nvim-lsp', -- LSP completion source 
     },
     config = function()
-      local lspconfig = require('lspconfig')
-      local capabilities = require('cmp_nvim_lsp').default_capabilities() -- 
+      -- Keymaps and settings on LSP attach (Neovim 0.11+ standard)
+      vim.api.nvim_create_autocmd('LspAttach', {
+        group = vim.api.nvim_create_augroup('UserLspConfig', { clear = true }),
+        callback = function(args)
+          local bufnr = args.buf
+          local client = vim.lsp.get_client_by_id(args.data.client_id)
 
-      -- Keymaps and settings on LSP attach
-      local on_attach = function(client, bufnr)
-        vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc') -- 
-        local map = vim.keymap.set
-        local opts = { buffer = bufnr, noremap = true, silent = true, desc = "LSP" }
+          vim.bo[bufnr].omnifunc = 'v:lua.vim.lsp.omnifunc'
+          local map = vim.keymap.set
+          local opts = { buffer = bufnr, noremap = true, silent = true, desc = "LSP" }
 
-        map('n', 'gd', vim.lsp.buf.definition, opts) -- 
-        map('n', 'K', vim.lsp.buf.hover, opts) -- 
-        map('n', 'gi', vim.lsp.buf.implementation, opts) -- 
-        map('n', '<C-k>', vim.lsp.buf.signature_help, opts) -- 
-        map('n', '<leader>rn', vim.lsp.buf.rename, opts) -- 
-        map('n', '<leader>ca', vim.lsp.buf.code_action, opts) -- 
-        map('n', 'gr', vim.lsp.buf.references, opts) -- 
-        map('n', '<leader>ld', vim.diagnostic.open_float, opts) -- Show line diagnostics 
-        map('n', '[d', vim.diagnostic.goto_prev, opts) -- 
-        map('n', ']d', vim.diagnostic.goto_next, opts) -- 
+          map('n', 'gd', vim.lsp.buf.definition, opts)
+          map('n', 'K', vim.lsp.buf.hover, opts)
+          map('n', 'gi', vim.lsp.buf.implementation, opts)
+          map('n', '<C-k>', vim.lsp.buf.signature_help, opts)
+          map('n', '<leader>rn', vim.lsp.buf.rename, opts)
+          map('n', '<leader>ca', vim.lsp.buf.code_action, opts)
+          map('n', 'gr', vim.lsp.buf.references, opts)
+          map('n', '<leader>ld', vim.diagnostic.open_float, opts)
+          map('n', '[d', vim.diagnostic.goto_prev, opts)
+          map('n', ']d', vim.diagnostic.goto_next, opts)
 
-        -- Optional: Format on save
-        if client.supports_method('textDocument/formatting') then -- 
-          vim.api.nvim_create_autocmd('BufWritePre', {
-            group = vim.api.nvim_create_augroup('LspFormatOnSave', { clear = true }),
-            buffer = bufnr,
-            callback = function() vim.lsp.buf.format({ async = true, bufnr = bufnr }) end, -- 
-          })
-        end
+          -- Optional: Format on save
+          if client and client.supports_method('textDocument/formatting') then
+            vim.api.nvim_create_autocmd('BufWritePre', {
+              group = vim.api.nvim_create_augroup('LspFormatOnSave_' .. bufnr, { clear = true }),
+              buffer = bufnr,
+              callback = function() vim.lsp.buf.format({ async = true, bufnr = bufnr }) end,
+            })
+          end
+        end,
+      })
+
+      -- Broadcast completion capabilities to all LSP servers (Neovim 0.11+)
+      local capabilities = require('cmp_nvim_lsp').default_capabilities()
+      vim.lsp.config('*', {
+        capabilities = capabilities,
+      })
+
+      -- Custom setup for lua_ls
+      vim.lsp.config('lua_ls', {
+        settings = {
+          Lua = {
+            runtime = { version = 'LuaJIT' },
+            diagnostics = { globals = { 'vim' } },
+            workspace = { library = vim.api.nvim_get_runtime_file("", true) },
+            telemetry = { enable = false },
+          },
+        },
+      })
+
+      -- Custom setup for ltex
+      local java_executable = vim.fn.executable('java') == 1 and vim.fn.exepath('java') or nil
+      if not java_executable then
+        vim.notify(
+          "LSP ltex: 'java' command not found in PATH. ltex-ls might not start." ..
+          " Ensure Java is installed and in PATH, or set JAVA_HOME, or configure 'ltex.java.path' manually.",
+          vim.log.levels.WARN
+        )
+      end
+      vim.lsp.config('ltex', {
+        settings = {
+          ltex = {
+            java = { path = java_executable },
+          },
+        },
+      })
+
+      -- Setup esbonio (managed externally via `uv tool install esbonio`)
+      if vim.fn.executable('esbonio') == 1 then
+        vim.lsp.config('esbonio', {
+          cmd = { 'esbonio' },
+        })
+        vim.lsp.enable('esbonio')
       end
 
       -- Setup servers via mason-lspconfig
       require('mason-lspconfig').setup({
-        ensure_installed = { -- Add the LSPs you need 
-          'pyright', -- Recommended Python LSP 
+        ensure_installed = {
+          'pyright',
           'bashls',
           'lua_ls',
-          'marksman', -- Markdown LSP 
-          'ltex', -- Optional: Markdown/RST Grammar/Style 
-          'esbonio', -- RST/Sphinx LSP 
-          'html', -- For Jinja2 
-         },
-         handlers = {
-           -- Default handler using capabilities and on_attach
-           function(server_name)
-             lspconfig[server_name].setup {
-               capabilities = capabilities,
-               on_attach = on_attach,
-             }
-           end,
-           -- Custom setup for lua_ls (example)
-           ["lua_ls"] = function()
-             lspconfig.lua_ls.setup {
-               capabilities = capabilities,
-               on_attach = on_attach,
-               settings = { -- Custom settings 
-                 Lua = {
-                   runtime = { version = 'LuaJIT' },
-                   diagnostics = { globals = { 'vim' } },
-                   workspace = { library = vim.api.nvim_get_runtime_file("", true) },
-                   telemetry = { enable = false },
-                 }
-               }
-             }
-           end,
-            -- Add custom setups for other servers if needed (e.g., pyright virtual envs)
-         }
+          'marksman',
+          'ltex',
+          'html',
+        },
       })
-    end
+    end,
   }
 }
 ```
@@ -209,7 +235,7 @@ return {
 return {
   {
     'nvim-treesitter/nvim-treesitter',
-    version = false, -- Use recommended version or latest commit 
+    branch = 'master', -- Stable branch compatible with Neovim and nvim-treesitter.configs
     build = ':TSUpdate', -- Auto-run :TSUpdate on install/update 
     event = { "BufReadPre", "BufNewFile" }, -- Load early for highlighting 
     dependencies = {

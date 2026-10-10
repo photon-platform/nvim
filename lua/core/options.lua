@@ -28,4 +28,11 @@ vim.cmd("syntax on") --
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
--- More options...
+-- Python 3 provider (configured via uv)
+local uv_pynvim = vim.fn.expand("~/.local/share/uv/tools/pynvim/bin/python")
+if vim.fn.filereadable(uv_pynvim) == 1 then
+  vim.g.python3_host_prog = uv_pynvim
+elseif vim.fn.executable("python3") == 1 then
+  vim.g.python3_host_prog = vim.fn.exepath("python3")
+end
+

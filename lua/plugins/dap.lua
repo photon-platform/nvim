@@ -10,29 +10,21 @@ return {
         "mfussenegger/nvim-dap-python",
         ft = "python", -- Load only for python files
         config = function()
-          -- Explicitly find the pyenv python path
+          -- Setup debugpy adapter using uv-managed python environment
+          local debugpy_tool_path = vim.fn.expand("~/.local/share/uv/tools/debugpy/bin/python")
+          local pynvim_tool_path = vim.fn.expand("~/.local/share/uv/tools/pynvim/bin/python")
           local python_path = nil
-          local handle = io.popen("pyenv which python")
-          if handle then
-            local result = handle:read("*a")
-            handle:close()
-            python_path = vim.fn.trim(result)
-            -- Basic check if the path seems valid (not empty and not containing error messages)
-            if python_path == "" or python_path:find("pyenv: python: command not found") or not vim.fn.executable(python_path) then
-               print("nvim-dap-python: 'pyenv which python' failed or returned invalid path. Falling back.")
-               python_path = nil
-            end
-          end
 
-          -- Fallback if pyenv command failed or pyenv not in use
-          if not python_path then
-             python_path = vim.fn.executable("python3") or vim.fn.executable("python")
-          end
-
-          -- Final fallback
-          if not python_path or python_path == "" then
-             print("nvim-dap-python: Could not resolve Python path. Using default 'python'.")
-             python_path = "python"
+          if vim.fn.filereadable(debugpy_tool_path) == 1 then
+            python_path = debugpy_tool_path
+          elseif vim.fn.filereadable(pynvim_tool_path) == 1 then
+            python_path = pynvim_tool_path
+          elseif vim.fn.executable("python3") == 1 then
+            python_path = vim.fn.exepath("python3")
+          elseif vim.fn.executable("python") == 1 then
+            python_path = vim.fn.exepath("python")
+          else
+            python_path = "python"
           end
 
           -- print("nvim-dap-python: Attempting setup with path: ".. python_path)
