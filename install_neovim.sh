@@ -23,10 +23,27 @@ sudo apt install -y \
   ripgrep \
   fd-find \
   xclip \
-  nodejs \
-  npm \
   openjdk-17-jdk \
   python3-venv
+
+# Ensure 'fd' command is available if fd-find provides fdfind
+mkdir -p "${HOME}/.local/bin"
+if command -v fdfind >/dev/null 2>&1 && ! command -v fd >/dev/null 2>&1; then
+  ln -sf "$(command -v fdfind)" "${HOME}/.local/bin/fd"
+fi
+
+# Ensure Node.js and npm (required by Mason for LSP installation) are available.
+# Note: When NodeSource repo is configured, 'nodejs' includes npm and conflicts
+# with the standalone Ubuntu/Debian 'npm' package.
+if ! command -v node >/dev/null 2>&1; then
+  echo "Installing Node.js..."
+  sudo apt install -y nodejs
+fi
+
+if ! command -v npm >/dev/null 2>&1; then
+  echo "Installing npm..."
+  sudo apt install -y npm
+fi
 
 echo "System packages installed successfully."
 
